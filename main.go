@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,15 +11,20 @@ import (
 )
 
 func main() {
+	ctx := context.Background()
 	cmd := os.Args[1]
 	args := os.Args[2:]
-	p := exec.Command(cmd, args...)
+	p := exec.CommandContext(ctx, cmd, args...)
+
 	out, err := p.StdoutPipe()
-	p.Start()
-	defer p.Cancel()
 	if err != nil {
 		panic(err)
 	}
+	err = p.Start()
+	if err != nil {
+		panic(err)
+	}
+	defer p.Cancel()
 
 	m := view.NewAppModel(out)
 	if _, err := tea.NewProgram(m, tea.WithAltScreen()).Run(); err != nil {
