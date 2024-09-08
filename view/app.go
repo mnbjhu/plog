@@ -3,10 +3,9 @@ package view
 import (
 	"bufio"
 	"io"
-	"regexp"
 
-	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 type AppModel struct {
@@ -14,25 +13,8 @@ type AppModel struct {
 	Logs     TableModel
 	Selected bool
 	Scanner  *bufio.Scanner
-}
-
-var (
-	logRegex = `^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}\+\d{2}:\d{2})\s+(\w+)\s+(\d+)\s+---\s+\[\s*([^\]]+)\s*\]\s+([^ ]+)\s*:\s*(.*)$`
-	matcher  = regexp.MustCompile(logRegex)
-)
-
-func ReadStdIn(s *bufio.Scanner, c chan table.Row) tea.Cmd {
-	return func() tea.Msg {
-		for s.Scan() {
-			input := s.Text()
-			groups := matcher.FindStringSubmatch(input)
-			if len(groups) != 7 {
-				continue
-			}
-			c <- table.Row{groups[1], groups[2], groups[3], groups[4], groups[5], groups[6]}
-		}
-		return nil
-	}
+	Width    int
+	Height   int
 }
 
 func (m AppModel) Init() tea.Cmd {
@@ -57,14 +39,17 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case selectMsg:
 		if msg.Text != nil {
-			m.Select.TextArea.SetValue(*msg.Text)
+			m.Select.Viewport.SetContent(*msg.Text)
 			m.Selected = true
 			m.Logs.Table.Blur()
 		} else {
-			m.Select.TextArea.SetValue("")
+			m.Select.Viewport.SetContent("")
 			m.Selected = false
 			m.Logs.Table.Focus()
 		}
+		m.Resize(m.Width, m.Height)
+	case tea.WindowSizeMsg:
+		m.Resize(msg.Width-2, msg.Height-2)
 	}
 	var logsCmd tea.Cmd
 	m.Logs, logsCmd = m.Logs.Update(msg)
@@ -75,9 +60,20 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(logsCmd, areaCmd)
 }
 
+func (m *AppModel) Resize(width, height int) {
+	m.Width = width
+	m.Height = height
+	w := width
+	if m.Selected {
+		w = w / 2
+	}
+	m.Logs = m.Logs.Resize(w, height)
+	m.Select = m.Select.Resize(w, height)
+}
+
 func (m AppModel) View() string {
 	if m.Selected {
-		return baseStyle.Render(m.Select.View())
+		return lipgloss.JoinHorizontal(lipgloss.Left, m.Logs.View(), m.Select.View())
 	}
 	return m.Logs.View()
 }
@@ -89,5 +85,14 @@ type selectMsg struct {
 func SelectMsg(text *string) tea.Cmd {
 	return func() tea.Msg {
 		return selectMsg{Text: text}
+	}
+}
+
+func ReadStdIn(s *bufio.Scanner, c chan string) tea.Cmd {
+	return func() tea.Msg {
+		for s.Scan() {
+			c <- s.Text()
+		}
+		return nil
 	}
 }

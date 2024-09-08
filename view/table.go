@@ -4,6 +4,7 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mnbjhu/plog/input"
 )
 
 var baseStyle = lipgloss.NewStyle().
@@ -56,29 +57,30 @@ func NewTableModel() TableModel {
 		}),
 	)
 	t.SetStyles(s)
-	channel := make(chan table.Row)
+	t.SetColumns(columns)
+	channel := make(chan string)
 	m := TableModel{Table: t, Channel: channel}
 	return m
 }
 
 type TableModel struct {
 	Table   table.Model
-	Channel chan table.Row
+	Channel chan string
 }
 
 type NewLogLineMsg struct {
-	Row table.Row
+	Text string
 }
 
-func LogLineMsg(row table.Row) tea.Cmd {
+func LogLineMsg(text string) tea.Cmd {
 	return func() tea.Msg {
-		return NewLogLineMsg{Row: row}
+		return NewLogLineMsg{Text: text}
 	}
 }
 
-func Wait(c chan table.Row) tea.Cmd {
+func Wait(c chan string) tea.Cmd {
 	return func() tea.Msg {
-		return NewLogLineMsg{Row: <-c}
+		return NewLogLineMsg{Text: <-c}
 	}
 }
 
@@ -93,19 +95,20 @@ func (m TableModel) Update(msg tea.Msg) (TableModel, tea.Cmd) {
 			text := m.Table.SelectedRow()[5]
 			return m, SelectMsg(&text)
 		}
-	case tea.WindowSizeMsg:
-		width := msg.Width - 51
-		if width < 5 {
-			width = 5
-		}
-		m.Table.SetWidth(msg.Width - 2)
-		m.Table.SetHeight(msg.Height - 4)
-		columns := m.Table.Columns()
-		columns[5].Width = width
-		m.Table.SetColumns(columns)
 	case NewLogLineMsg:
-		rows := append(m.Table.Rows(), msg.Row)
-		m.Table.SetRows(rows)
+		groups := input.Matcher.FindStringSubmatch(msg.Text)
+		if len(groups) == 7 {
+			row := table.Row{groups[1], groups[2], groups[3], groups[4], groups[5], groups[6]}
+			rows := append(m.Table.Rows(), row)
+			m.Table.SetRows(rows)
+		} else {
+			rows := m.Table.Rows()
+			if len(rows) > 0 {
+				current := rows[len(rows)-1][5]
+				rows[len(rows)-1][5] = current + "\n" + msg.Text
+				m.Table.SetRows(rows)
+			}
+		}
 		m.Table.GotoBottom()
 		m.Table, cmd = m.Table.Update(nil)
 		return m, Wait(m.Channel)
@@ -117,4 +120,17 @@ func (m TableModel) Update(msg tea.Msg) (TableModel, tea.Cmd) {
 
 func (m TableModel) View() string {
 	return baseStyle.Render(m.Table.View())
+}
+
+func (m TableModel) Resize(width, height int) TableModel {
+	m.Table.SetWidth(width - 2)
+	m.Table.SetHeight(height)
+	columns := m.Table.Columns()
+	colWidth := width - 51
+	if colWidth < 4 {
+		colWidth = 4
+	}
+	columns[5].Width = colWidth
+	m.Table.SetColumns(columns)
+	return m
 }
