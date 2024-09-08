@@ -1,32 +1,40 @@
 package view
 
 import (
-	"bufio"
 	"io"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mnbjhu/plog/input"
 )
 
 type AppModel struct {
 	Select   SelectModel
 	Logs     TableModel
 	Selected bool
-	Scanner  *bufio.Scanner
 	Width    int
 	Height   int
 }
 
 func (m AppModel) Init() tea.Cmd {
-	return tea.Batch(ReadStdIn(m.Scanner, m.Logs.Channel), Wait(m.Logs.Channel))
+	return tea.Batch(m.Logs.LogHandler.HandleLog(), Wait(m.Logs.LogChannel, m.Logs.MsgChannel))
 }
 
+// 2024-09-08T17:35:56.385+01:00 [Runtime]  INFO sqlx::postgres::notice: relation "_sqlx_migrations" already exists, skipping
+// 2024-09-08T17:35:56.387+01:00 [Runtime] Starting on 127.0.0.1:8000
+
 func NewAppModel(out io.Reader) AppModel {
+	logs := NewTableModel()
+	handler := input.Log4jHandler{
+		MsgAppender: logs.MsgChannel,
+		RowAppender: logs.LogChannel,
+		Reader:      out,
+	}
+	logs.LogHandler = handler
 	return AppModel{
 		Select:   NewSelectModel(),
-		Logs:     NewTableModel(),
+		Logs:     logs,
 		Selected: false,
-		Scanner:  bufio.NewScanner(out),
 	}
 }
 
@@ -85,14 +93,5 @@ type selectMsg struct {
 func SelectMsg(text *string) tea.Cmd {
 	return func() tea.Msg {
 		return selectMsg{Text: text}
-	}
-}
-
-func ReadStdIn(s *bufio.Scanner, c chan string) tea.Cmd {
-	return func() tea.Msg {
-		for s.Scan() {
-			c <- s.Text()
-		}
-		return nil
 	}
 }
