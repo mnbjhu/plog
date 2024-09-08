@@ -21,6 +21,8 @@ func ReadInput(stdInChan chan table.Row) {
 		input := scanner.Text()
 		groups := matcher.FindStringSubmatch(input)
 		if len(groups) != 7 {
+
+			stdInChan <- table.Row{"---", "ERROR", "---", "---", "---", "Invalid log line"}
 			continue
 		}
 		stdInChan <- table.Row{groups[1], groups[2], groups[3], groups[4], groups[5], groups[6]}

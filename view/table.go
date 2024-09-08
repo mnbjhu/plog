@@ -80,8 +80,7 @@ type WaitMsg struct{}
 
 func Wait(c chan table.Row) tea.Cmd {
 	return func() tea.Msg {
-		<-c
-		return WaitMsg{}
+		return LogLineMsg(<-c)
 	}
 }
 

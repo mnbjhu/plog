@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"io"
 	"regexp"
+	"time"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
@@ -23,15 +24,20 @@ var (
 
 func ReadStdIn(s *bufio.Scanner, c chan table.Row) tea.Cmd {
 	return func() tea.Msg {
-		for s.Scan() {
-			input := s.Text()
-			groups := matcher.FindStringSubmatch(input)
-			if len(groups) != 7 {
-				continue
-			}
-			c <- table.Row{groups[1], groups[2], groups[3], groups[4], groups[5], groups[6]}
+		// for s.Scan() {
+		// 	input := s.Text()
+		// 	groups := matcher.FindStringSubmatch(input)
+		// 	if len(groups) != 7 {
+		// 		c <- table.Row{"---", "ERROR", "---", "---", "---", "Invalid log line"}
+		// 		continue
+		// 	}
+		// 	c <- table.Row{groups[1], groups[2], groups[3], groups[4], groups[5], groups[6]}
+		// }
+		// return nil
+		for {
+			c <- table.Row{"---", "ERROR", "---", "---", "---", "Invalid log line"}
+			time.Sleep(1 * time.Second)
 		}
-		return nil
 	}
 }
 
