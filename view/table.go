@@ -10,7 +10,7 @@ var baseStyle = lipgloss.NewStyle().
 	BorderStyle(lipgloss.NormalBorder()).
 	BorderForeground(lipgloss.Color("240"))
 
-func NewTableModel(stdInChan chan table.Row) TableModel {
+func NewTableModel() TableModel {
 	columns := []table.Column{
 		{Title: "Date", Width: 10},
 		{Title: "Level", Width: 5},
@@ -56,7 +56,8 @@ func NewTableModel(stdInChan chan table.Row) TableModel {
 		}),
 	)
 	t.SetStyles(s)
-	m := TableModel{Table: t, Channel: stdInChan}
+	channel := make(chan table.Row)
+	m := TableModel{Table: t, Channel: channel}
 	return m
 }
 
@@ -69,32 +70,22 @@ type NewLogLineMsg struct {
 	Row table.Row
 }
 
-func WaitForLog(c chan table.Row) tea.Cmd {
+func LogLineMsg(row table.Row) tea.Cmd {
 	return func() tea.Msg {
-		return NewLogLineMsg{Row: <-c}
+		return NewLogLineMsg{Row: row}
 	}
 }
 
-func (m TableModel) Init() tea.Cmd { return tea.Batch(WaitForLog(m.Channel)) }
+func (m TableModel) Init() tea.Cmd { return nil }
 
-func (m TableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m TableModel) Update(msg tea.Msg) (TableModel, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "esc":
-			if m.Table.Focused() {
-				m.Table.Blur()
-			} else {
-				m.Table.Focus()
-			}
-
-		case "q", "ctrl+c":
-			return m, tea.Quit
 		case "enter":
-			return m, tea.Batch(
-				tea.Printf("Let's go to %s!", m.Table.SelectedRow()[1]),
-			)
+			text := m.Table.SelectedRow()[5]
+			return m, SelectMsg(&text)
 		}
 	case tea.WindowSizeMsg:
 		width := msg.Width - 51
@@ -110,7 +101,7 @@ func (m TableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		rows := append(m.Table.Rows(), msg.Row)
 		m.Table.SetRows(rows)
 		m.Table.GotoBottom()
-		return m, WaitForLog(m.Channel)
+		return m, nil
 	}
 
 	m.Table, cmd = m.Table.Update(msg)
@@ -118,6 +109,5 @@ func (m TableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m TableModel) View() string {
-	return baseStyle.Render(m.Table.View()) + "\n  "
-	// + m.Table.HelpView() + "\n"
+	return baseStyle.Render(m.Table.View())
 }
