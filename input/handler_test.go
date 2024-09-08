@@ -1,6 +1,9 @@
 package input
 
 import (
+	"bufio"
+	"context"
+	"os/exec"
 	"regexp"
 	"testing"
 )
@@ -40,4 +43,24 @@ func TestParseLogLine(t *testing.T) {
 	if message != "Hello this is an example message" {
 		t.Errorf("Expected Hello this is an example message, got %s", message)
 	}
+}
+
+func TestRunCmd(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cmd := exec.CommandContext(ctx, "echo", "Hello, World!")
+	out, err := cmd.StdoutPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = cmd.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+	scanner := bufio.NewScanner(out)
+	if scanner.Scan() {
+		if scanner.Text() != "Hello, World!" {
+			t.Errorf("Expected Hello, World!, got %s", scanner.Text())
+		}
+	}
+	cancel()
 }
