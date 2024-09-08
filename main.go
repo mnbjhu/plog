@@ -7,6 +7,7 @@ import (
 	"os/exec"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/mnbjhu/plog/input"
 	"github.com/mnbjhu/plog/view"
 )
 
@@ -31,7 +32,9 @@ func main() {
 	}
 	defer p.Cancel()
 
-	m := view.NewAppModel(out)
+	config := input.GetConfig()
+
+	m := view.NewAppModel(out, config)
 	if _, err := tea.NewProgram(m, tea.WithAltScreen()).Run(); err != nil {
 		fmt.Println("Error running program:", err)
 		os.Exit(1)

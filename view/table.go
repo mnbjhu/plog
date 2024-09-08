@@ -18,14 +18,10 @@ type TableModel struct {
 	LogHandler input.LogHandler
 }
 
-func NewTableModel() TableModel {
-	columns := []table.Column{
-		{Title: "Date", Width: 10},
-		{Title: "Level", Width: 5},
-		{Title: "Pid", Width: 6},
-		{Title: "Thread", Width: 6},
-		{Title: "Class", Width: 10},
-		{Title: "Message", Width: 21},
+func NewTableModel(config input.Config) TableModel {
+	columns := []table.Column{}
+	for _, col := range config.Columns {
+		columns = append(columns, table.Column{Width: col.Width, Title: col.Title})
 	}
 
 	rows := []table.Row{}
@@ -104,8 +100,9 @@ func (m TableModel) Update(msg tea.Msg) (TableModel, tea.Cmd) {
 	case appendLogMsg:
 		rows := m.Table.Rows()
 		if len(rows) > 0 {
-			current := rows[len(rows)-1][5]
-			rows[len(rows)-1][5] = current + "\n" + msg.Text
+			index := m.LogHandler.GetMsgColumnIndex()
+			current := rows[len(rows)-1][index]
+			rows[len(rows)-1][index] = current + "\n" + msg.Text
 			m.Table.SetRows(rows)
 			m.Table.GotoBottom()
 			m.Table, cmd = m.Table.Update(nil)
@@ -135,7 +132,7 @@ func (m TableModel) Resize(width, height int) TableModel {
 	if colWidth < 4 {
 		colWidth = 4
 	}
-	columns[5].Width = colWidth
+	columns[m.LogHandler.GetLevelColumnIndex()].Width = colWidth
 	m.Table.SetColumns(columns)
 	return m
 }
