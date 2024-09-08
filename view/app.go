@@ -36,7 +36,7 @@ func ReadStdIn(s *bufio.Scanner, c chan table.Row) tea.Cmd {
 }
 
 func (m AppModel) Init() tea.Cmd {
-	return ReadStdIn(m.Scanner, m.Logs.Channel)
+	return tea.Batch(ReadStdIn(m.Scanner, m.Logs.Channel), Wait(m.Logs.Channel))
 }
 
 func NewAppModel(out io.Reader) AppModel {
