@@ -76,11 +76,9 @@ func LogLineMsg(row table.Row) tea.Cmd {
 	}
 }
 
-type WaitMsg struct{}
-
 func Wait(c chan table.Row) tea.Cmd {
 	return func() tea.Msg {
-		return LogLineMsg(<-c)
+		return NewLogLineMsg{Row: <-c}
 	}
 }
 
@@ -109,6 +107,7 @@ func (m TableModel) Update(msg tea.Msg) (TableModel, tea.Cmd) {
 		rows := append(m.Table.Rows(), msg.Row)
 		m.Table.SetRows(rows)
 		m.Table.GotoBottom()
+		m.Table, cmd = m.Table.Update(nil)
 		return m, Wait(m.Channel)
 	}
 

@@ -12,6 +12,11 @@ import (
 
 func main() {
 	ctx := context.Background()
+	if len(os.Args) < 2 {
+		fmt.Println("Usage: plog <command>")
+		os.Exit(1)
+	}
+
 	cmd := os.Args[1]
 	args := os.Args[2:]
 	p := exec.CommandContext(ctx, cmd, args...)
