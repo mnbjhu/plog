@@ -11,6 +11,13 @@ var baseStyle = lipgloss.NewStyle().
 	BorderStyle(lipgloss.NormalBorder()).
 	BorderForeground(lipgloss.Color("240"))
 
+type TableModel struct {
+	Table      table.Model
+	MsgChannel chan string
+	LogChannel chan table.Row
+	LogHandler input.LogHandler
+}
+
 func NewTableModel() TableModel {
 	columns := []table.Column{
 		{Title: "Date", Width: 10},
@@ -58,29 +65,28 @@ func NewTableModel() TableModel {
 	)
 	t.SetStyles(s)
 	t.SetColumns(columns)
-	channel := make(chan string)
-	m := TableModel{Table: t, Channel: channel}
+	msgChan := make(chan string)
+	logChan := make(chan table.Row)
+	m := TableModel{Table: t, MsgChannel: msgChan, LogChannel: logChan}
 	return m
 }
 
-type TableModel struct {
-	Table   table.Model
-	Channel chan string
+type newLogMsg struct {
+	Row table.Row
 }
 
-type NewLogLineMsg struct {
+type appendLogMsg struct {
 	Text string
 }
 
-func LogLineMsg(text string) tea.Cmd {
+func Wait(logs chan table.Row, msg chan string) tea.Cmd {
 	return func() tea.Msg {
-		return NewLogLineMsg{Text: text}
-	}
-}
-
-func Wait(c chan string) tea.Cmd {
-	return func() tea.Msg {
-		return NewLogLineMsg{Text: <-c}
+		select {
+		case row := <-logs:
+			return newLogMsg{Row: row}
+		case text := <-msg:
+			return appendLogMsg{Text: text}
+		}
 	}
 }
 
@@ -95,23 +101,22 @@ func (m TableModel) Update(msg tea.Msg) (TableModel, tea.Cmd) {
 			text := m.Table.SelectedRow()[5]
 			return m, SelectMsg(&text)
 		}
-	case NewLogLineMsg:
-		groups := input.Matcher.FindStringSubmatch(msg.Text)
-		if len(groups) == 7 {
-			row := table.Row{groups[1], groups[2], groups[3], groups[4], groups[5], groups[6]}
-			rows := append(m.Table.Rows(), row)
+	case appendLogMsg:
+		rows := m.Table.Rows()
+		if len(rows) > 0 {
+			current := rows[len(rows)-1][5]
+			rows[len(rows)-1][5] = current + "\n" + msg.Text
 			m.Table.SetRows(rows)
-		} else {
-			rows := m.Table.Rows()
-			if len(rows) > 0 {
-				current := rows[len(rows)-1][5]
-				rows[len(rows)-1][5] = current + "\n" + msg.Text
-				m.Table.SetRows(rows)
-			}
+			m.Table.GotoBottom()
+			m.Table, cmd = m.Table.Update(nil)
 		}
+		return m, Wait(m.LogChannel, m.MsgChannel)
+	case newLogMsg:
+		rows := append(m.Table.Rows(), msg.Row)
+		m.Table.SetRows(rows)
 		m.Table.GotoBottom()
 		m.Table, cmd = m.Table.Update(nil)
-		return m, Wait(m.Channel)
+		return m, Wait(m.LogChannel, m.MsgChannel)
 	}
 
 	m.Table, cmd = m.Table.Update(msg)
