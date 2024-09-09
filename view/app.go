@@ -27,7 +27,7 @@ func NewAppModel(out io.Reader, config input.Config) AppModel {
 	for _, col := range config.Columns {
 		columns = append(columns, col.Title)
 	}
-	handler := input.Log4jHandler{
+	handler := input.LogHandler{
 		MsgAppender: logs.MsgChannel,
 		RowAppender: logs.LogChannel,
 		Reader:      out,

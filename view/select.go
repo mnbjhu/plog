@@ -37,7 +37,7 @@ func (m SelectModel) View() string {
 }
 
 func (m SelectModel) Resize(width, height int) SelectModel {
-	m.Viewport.Width = width
+	m.Viewport.Width = width - 2
 	m.Viewport.Height = height
 	return m
 }
