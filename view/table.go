@@ -15,17 +15,13 @@ type TableModel struct {
 	Table      table.Model
 	MsgChannel chan string
 	LogChannel chan table.Row
-	LogHandler input.LogHandler
+	LogHandler input.Log4jHandler
 }
 
-func NewTableModel() TableModel {
-	columns := []table.Column{
-		{Title: "Date", Width: 10},
-		{Title: "Level", Width: 5},
-		{Title: "Pid", Width: 6},
-		{Title: "Thread", Width: 6},
-		{Title: "Class", Width: 10},
-		{Title: "Message", Width: 21},
+func NewTableModel(config input.Config) TableModel {
+	columns := []table.Column{}
+	for _, col := range config.Columns {
+		columns = append(columns, table.Column{Width: col.Width, Title: col.Title})
 	}
 
 	rows := []table.Row{}
@@ -98,24 +94,25 @@ func (m TableModel) Update(msg tea.Msg) (TableModel, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "enter":
-			text := m.Table.SelectedRow()[5]
+			text := m.Table.SelectedRow()[m.LogHandler.GetMsgColumnIndex()]
 			return m, SelectMsg(&text)
 		}
 	case appendLogMsg:
 		rows := m.Table.Rows()
 		if len(rows) > 0 {
-			current := rows[len(rows)-1][5]
-			rows[len(rows)-1][5] = current + "\n" + msg.Text
+			index := m.LogHandler.GetMsgColumnIndex()
+			current := rows[len(rows)-1][index]
+			rows[len(rows)-1][index] = current + "\n" + msg.Text
 			m.Table.SetRows(rows)
 			m.Table.GotoBottom()
-			m.Table, cmd = m.Table.Update(nil)
+			m.Table, _ = m.Table.Update(nil)
 		}
 		return m, Wait(m.LogChannel, m.MsgChannel)
 	case newLogMsg:
 		rows := append(m.Table.Rows(), msg.Row)
 		m.Table.SetRows(rows)
 		m.Table.GotoBottom()
-		m.Table, cmd = m.Table.Update(nil)
+		m.Table, _ = m.Table.Update(nil)
 		return m, Wait(m.LogChannel, m.MsgChannel)
 	}
 
@@ -131,11 +128,11 @@ func (m TableModel) Resize(width, height int) TableModel {
 	m.Table.SetWidth(width - 2)
 	m.Table.SetHeight(height)
 	columns := m.Table.Columns()
-	colWidth := width - 51
+	colWidth := width - m.LogHandler.LeadingSize + 30
 	if colWidth < 4 {
 		colWidth = 4
 	}
-	columns[5].Width = colWidth
+	columns[m.LogHandler.GetMsgColumnIndex()].Width = colWidth
 	m.Table.SetColumns(columns)
 	return m
 }

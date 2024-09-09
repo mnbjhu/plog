@@ -1,7 +1,6 @@
 package view
 
 import (
-	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -15,8 +14,6 @@ func (m SelectModel) Init() tea.Cmd {
 }
 
 func NewSelectModel() SelectModel {
-	area := textarea.New()
-	area.CharLimit = 0
 	return SelectModel{
 		Viewport: viewport.New(0, 0),
 	}

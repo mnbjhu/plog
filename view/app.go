@@ -6,6 +6,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mnbjhu/plog/input"
+	"github.com/oriser/regroup"
 )
 
 type AppModel struct {
@@ -20,15 +21,19 @@ func (m AppModel) Init() tea.Cmd {
 	return tea.Batch(m.Logs.LogHandler.HandleLog(), Wait(m.Logs.LogChannel, m.Logs.MsgChannel))
 }
 
-// 2024-09-08T17:35:56.385+01:00 [Runtime]  INFO sqlx::postgres::notice: relation "_sqlx_migrations" already exists, skipping
-// 2024-09-08T17:35:56.387+01:00 [Runtime] Starting on 127.0.0.1:8000
-
-func NewAppModel(out io.Reader) AppModel {
-	logs := NewTableModel()
+func NewAppModel(out io.Reader, config input.Config) AppModel {
+	logs := NewTableModel(config)
+	columns := []string{}
+	for _, col := range config.Columns {
+		columns = append(columns, col.Title)
+	}
 	handler := input.Log4jHandler{
 		MsgAppender: logs.MsgChannel,
 		RowAppender: logs.LogChannel,
 		Reader:      out,
+		Regex:       regroup.MustCompile(config.Regex),
+		LeadingSize: input.LeadingRowSize(config),
+		Columns:     columns,
 	}
 	logs.LogHandler = handler
 	return AppModel{
