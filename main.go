@@ -13,7 +13,6 @@ import (
 )
 
 func main() {
-	ctx := context.Background()
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: plog <command>")
 		os.Exit(1)
@@ -21,7 +20,13 @@ func main() {
 	config := input.GetConfig()
 
 	cmd := os.Args[1]
+	if cmd == "init" {
+		view.Init()
+		return
+	}
 	args := os.Args[2:]
+
+	ctx := context.Background()
 	p := exec.CommandContext(ctx, cmd, args...)
 
 	var out io.ReadCloser
