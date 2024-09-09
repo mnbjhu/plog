@@ -15,7 +15,7 @@ type TableModel struct {
 	Table      table.Model
 	MsgChannel chan string
 	LogChannel chan table.Row
-	LogHandler input.LogHandler
+	LogHandler input.Log4jHandler
 }
 
 func NewTableModel(config input.Config) TableModel {
@@ -94,7 +94,7 @@ func (m TableModel) Update(msg tea.Msg) (TableModel, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "enter":
-			text := m.Table.SelectedRow()[5]
+			text := m.Table.SelectedRow()[m.LogHandler.GetMsgColumnIndex()]
 			return m, SelectMsg(&text)
 		}
 	case appendLogMsg:
@@ -105,14 +105,14 @@ func (m TableModel) Update(msg tea.Msg) (TableModel, tea.Cmd) {
 			rows[len(rows)-1][index] = current + "\n" + msg.Text
 			m.Table.SetRows(rows)
 			m.Table.GotoBottom()
-			m.Table, cmd = m.Table.Update(nil)
+			m.Table, _ = m.Table.Update(nil)
 		}
 		return m, Wait(m.LogChannel, m.MsgChannel)
 	case newLogMsg:
 		rows := append(m.Table.Rows(), msg.Row)
 		m.Table.SetRows(rows)
 		m.Table.GotoBottom()
-		m.Table, cmd = m.Table.Update(nil)
+		m.Table, _ = m.Table.Update(nil)
 		return m, Wait(m.LogChannel, m.MsgChannel)
 	}
 
@@ -128,11 +128,11 @@ func (m TableModel) Resize(width, height int) TableModel {
 	m.Table.SetWidth(width - 2)
 	m.Table.SetHeight(height)
 	columns := m.Table.Columns()
-	colWidth := width - 51
+	colWidth := width - m.LogHandler.LeadingSize + 30
 	if colWidth < 4 {
 		colWidth = 4
 	}
-	columns[m.LogHandler.GetLevelColumnIndex()].Width = colWidth
+	columns[m.LogHandler.GetMsgColumnIndex()].Width = colWidth
 	m.Table.SetColumns(columns)
 	return m
 }

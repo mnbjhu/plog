@@ -16,6 +16,7 @@ type ColumnDef struct {
 type Config struct {
 	Columns []ColumnDef `json:"columns"`
 	Regex   string      `json:"regex"`
+	Input   string      `json:"input"`
 }
 
 func DefaultConfig() Config {
@@ -29,7 +30,16 @@ func DefaultConfig() Config {
 			{Title: "Msg", Width: 18},
 		},
 		Regex: logRegex,
+		Input: "stdout",
 	}
+}
+
+func LeadingRowSize(config Config) int {
+	size := 0
+	for _, col := range config.Columns {
+		size += col.Width
+	}
+	return size + config.Columns[len(config.Columns)-1].Width
 }
 
 func GetConfig() Config {
