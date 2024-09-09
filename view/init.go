@@ -44,7 +44,7 @@ func Init() {
 						huh.NewOption("Float", "(?<%s>\\d+\\.\\d+)"),
 						huh.NewOption("Any", "(?<%s>\\w+)"),
 						huh.NewOption("Bracketed", "\\[(?<%s>[^\\[]+)\\]"),
-						huh.NewOption("Rest", "(?<%s>.*)"),
+						huh.NewOption("Rest", "rest"),
 					).Value(&expr),
 				huh.NewInput().Title("Width").
 					Validate(func(b string) error {
@@ -52,13 +52,15 @@ func Init() {
 						return err
 					}).
 					Value(&width),
-				huh.NewConfirm().Title("Add Column").
-					Value(&another),
 			).Title(fmt.Sprintf("Column %d", len(conf.Columns)+1)),
 		)
 		err := newColForm.Run()
 		if err != nil {
 			panic(err)
+		}
+		if expr == "rest" {
+			expr = "(?<%s>.*)"
+			another = false
 		}
 		w, _ := strconv.Atoi(width)
 		conf.Columns = append(conf.Columns, input.ColumnDef{

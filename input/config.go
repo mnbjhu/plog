@@ -25,7 +25,10 @@ func (c Config) Save() {
 		panic(fmt.Errorf("failed to open config file: %w", err))
 	}
 	defer file.Close()
-	if err := json.NewEncoder(file).Encode(c); err != nil {
+	encoder := json.NewEncoder(file)
+	encoder.SetEscapeHTML(false)
+	encoder.SetIndent("", "  ")
+	if err := encoder.Encode(c); err != nil {
 		panic(fmt.Errorf("failed to encode config file: %w", err))
 	}
 }
