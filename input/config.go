@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
+
+	"github.com/charmbracelet/bubbles/table"
 )
 
 var configFile = ".plog.json"
@@ -66,4 +69,36 @@ func GetConfig() Config {
 		panic(fmt.Errorf("failed to decode config file: %w", err))
 	}
 	return config
+}
+
+func (c Config) GetColumns(expected int) []table.Column {
+	columns := make([]table.Column, len(c.Columns))
+	total := 0.0
+	for _, col := range c.Columns {
+		total += float64(col.Width)
+	}
+	expected -= len(c.Columns) * 2
+	prev := 0
+	rel := 0
+	for i, col := range c.Columns {
+		rel += col.Width
+		new := int(float64(rel) * float64(expected) / total)
+		width := new - prev
+		columns[i] = table.Column{Width: width, Title: col.Title}
+		prev = new
+	}
+	return columns
+}
+
+func (c Config) GetLevelColumnIndex() int {
+	for i, col := range c.Columns {
+		if strings.ToLower(col.Title) == "level" {
+			return i
+		}
+	}
+	return -1
+}
+
+func (c Config) GetMsgColumnIndex() int {
+	return len(c.Columns) - 1
 }

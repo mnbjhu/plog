@@ -15,7 +15,8 @@ type TableModel struct {
 	Table      table.Model
 	MsgChannel chan string
 	LogChannel chan table.Row
-	LogHandler input.Log4jHandler
+	LogHandler input.LogHandler
+	Config     *input.Config
 }
 
 func NewTableModel(config input.Config) TableModel {
@@ -42,7 +43,7 @@ func NewTableModel(config input.Config) TableModel {
 		table.WithFocused(true),
 		table.WithHeight(7),
 		table.WithStyleFunc(func(row, col int, value string) lipgloss.Style {
-			if col == 1 {
+			if col == config.GetLevelColumnIndex() {
 				switch value {
 				case "ERROR":
 					return lipgloss.NewStyle().Foreground(lipgloss.Color("196"))
@@ -63,7 +64,7 @@ func NewTableModel(config input.Config) TableModel {
 	t.SetColumns(columns)
 	msgChan := make(chan string)
 	logChan := make(chan table.Row)
-	m := TableModel{Table: t, MsgChannel: msgChan, LogChannel: logChan}
+	m := TableModel{Table: t, MsgChannel: msgChan, LogChannel: logChan, Config: &config}
 	return m
 }
 
@@ -94,13 +95,13 @@ func (m TableModel) Update(msg tea.Msg) (TableModel, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "enter":
-			text := m.Table.SelectedRow()[m.LogHandler.GetMsgColumnIndex()]
+			text := m.Table.SelectedRow()[m.Config.GetMsgColumnIndex()]
 			return m, SelectMsg(&text)
 		}
 	case appendLogMsg:
 		rows := m.Table.Rows()
 		if len(rows) > 0 {
-			index := m.LogHandler.GetMsgColumnIndex()
+			index := m.Config.GetMsgColumnIndex()
 			current := rows[len(rows)-1][index]
 			rows[len(rows)-1][index] = current + "\n" + msg.Text
 			m.Table.SetRows(rows)
@@ -125,14 +126,9 @@ func (m TableModel) View() string {
 }
 
 func (m TableModel) Resize(width, height int) TableModel {
-	m.Table.SetWidth(width - 2)
+	m.Table.SetWidth(width)
 	m.Table.SetHeight(height)
-	columns := m.Table.Columns()
-	colWidth := width - m.LogHandler.LeadingSize + 30
-	if colWidth < 4 {
-		colWidth = 4
-	}
-	columns[m.LogHandler.GetMsgColumnIndex()].Width = colWidth
-	m.Table.SetColumns(columns)
+
+	m.Table.SetColumns(m.Config.GetColumns(width))
 	return m
 }

@@ -42,7 +42,7 @@ func Init() {
 					Options(huh.NewOption("Word", "(?<%s>\\w+)"),
 						huh.NewOption("Integer", "(?<%s>\\d+)"),
 						huh.NewOption("Float", "(?<%s>\\d+\\.\\d+)"),
-						huh.NewOption("Any", "(?<%s>\\w+)"),
+						huh.NewOption("Any", "(?<%s>[^\\s]+)"),
 						huh.NewOption("Bracketed", "\\[(?<%s>[^\\[]+)\\]"),
 						huh.NewOption("Rest", "rest"),
 					).Value(&expr),

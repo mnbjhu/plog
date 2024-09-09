@@ -3,7 +3,6 @@ package input
 import (
 	"bufio"
 	"io"
-	"strings"
 
 	"github.com/acarl005/stripansi"
 	"github.com/charmbracelet/bubbles/table"
@@ -16,7 +15,7 @@ var (
 	Matcher  = regroup.MustCompile(logRegex)
 )
 
-type Log4jHandler struct {
+type LogHandler struct {
 	MsgAppender chan string
 	RowAppender chan table.Row
 	Reader      io.Reader
@@ -25,24 +24,7 @@ type Log4jHandler struct {
 	LeadingSize int
 }
 
-func (h Log4jHandler) GetColumns() []string {
-	return h.Columns
-}
-
-func (h Log4jHandler) GetLevelColumnIndex() int {
-	for i, col := range h.GetColumns() {
-		if strings.ToLower(col) == "level" {
-			return i
-		}
-	}
-	return -1
-}
-
-func (h Log4jHandler) GetMsgColumnIndex() int {
-	return len(h.GetColumns()) - 1
-}
-
-func (h Log4jHandler) HandleLog() tea.Cmd {
+func (h LogHandler) HandleLog() tea.Cmd {
 	return func() tea.Msg {
 		scanner := bufio.NewScanner(h.Reader)
 		for scanner.Scan() {
