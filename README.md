@@ -19,7 +19,7 @@ plog java -jar app.jar
 ### Using Go Package Manager
 
 ```bash
-go install github.com/mnbjhu/plog
+go install github.com/mnbjhu/plog@latest
 ```
 
 ### Download The Binary
